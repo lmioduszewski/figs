@@ -394,37 +394,3 @@ class Subplot:
             mapbox_center=map_center,
             mapbox_zoom=13,        
                         )
-
-
-def get_fig():
-    
-    logger_data = pd.read_excel(Path.cwd().joinpath('sample_data','logger_data.xlsx'))
-    hand_data = pd.read_excel(Path.cwd().joinpath('sample_data','hand_data.xlsx'))
-    precip_data = pd.read_excel(Path.cwd().joinpath('sample_data','rain_data.xlsx'))
-    locs = Path().cwd().joinpath('sample_data','ten_trails_map_locs.shp')
-    fig = Fig().subplot(show_precip=True, show_map=True)
-    fig.add_map(locs)
-    fig.add_water_levels(df=logger_data)
-    fig.add_water_levels(df=hand_data, mode='markers', marker_size=5)
-    fig.add_precip(precip_data, cols_to_plot=3, type='lines')
-    
-    # Save/pickle the fig
-    with open(data_dir.joinpath('Ten_Trails.fig'), 'wb') as f:
-        pickle.dump(fig.fig, f)
-    
-    return
-
-if __name__ == '__main__':
-
-    """logger_data = pd.read_excel(Path.cwd().joinpath('sample_data','logger_data.xlsx'))
-    hand_data = pd.read_excel(Path.cwd().joinpath('sample_data','hand_data.xlsx'))
-    precip_data = pd.read_excel(Path.cwd().joinpath('sample_data','rain_data.xlsx'))
-    locs = Path().cwd().joinpath('sample_data','ten_trails_map_locs.shp')
-    fig = Fig().subplot(show_precip=True, show_map=True)
-    fig.add_map(locs)
-    fig.add_water_levels(df=logger_data)
-    fig.add_water_levels(df=hand_data, mode='markers', marker_size=5)
-    fig.add_precip(precip_data, cols_to_plot=3, type='lines')
-    fig.show()"""
-    
-    get_fig()
