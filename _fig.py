@@ -1,9 +1,7 @@
 from pathlib import Path
-import psycopg2
 import pandas as pd
 import shapely as shp
 from plotly import graph_objects as go
-import webview
 from plotly.subplots import make_subplots
 import geopandas as gpd
 import plotly
