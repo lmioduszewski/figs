@@ -209,11 +209,13 @@ class ScalableFigure(Fig):
         x_feet_per_dot = [self._x_scale / 72 if self._x_scale is not None else 0]
         y_feet_per_dot = [self._y_scale / 72 if self._y_scale is not None else 0]
         grid_dimensions = self.grid_dimensions
+        #  get default minimum x-axis value based on data
+        x_min = self.full_figure_for_development(warn=False).layout.xaxis.range[0]
         x_dots, y_dots = grid_dimensions['width'], grid_dimensions['height']
         x_span, y_span = x_dots * x_feet_per_dot[0], y_dots * y_feet_per_dot[0]
         if self._xaxis_anchor is True:
             self.update_yaxes(scaleanchor='x', scaleratio=self._y_scale_exaggeration)
-        self.update_xaxes(range=[0, x_span])
+        self.update_xaxes(range=[x_min, (x_min + x_span)])
         #   write a new svg file with the updated, scaled axes ranges
         self.write_svg()
         drawing = svg2rlg(self._svg_path)
@@ -228,3 +230,11 @@ class ScalableFigure(Fig):
         # Render the drawing to PDF
         renderPDF.drawToFile(rendered_drawing, pdf_path)
         print(f'wrote drawing {pdf_path}')
+
+if __name__ == "__main__":
+
+    fig = ScalableFigure()
+    fig.add_scatter(x=[-110, 20, 44], y=[3, 2, 1])
+    fig.add_scatter(x=[-20, 30, 49], y=[6, 8, 10])
+    fig.x_scale = 50
+    fig.write_scaled_pdf()
