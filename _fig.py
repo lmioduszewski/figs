@@ -11,6 +11,7 @@ import pickle
 data_dir = Path.cwd().joinpath('sample_data')
 
 class Template:
+    """Base Template for figure objects in the Fig class"""
     def __init__(self):
 
         # FIG TEMPLATE
@@ -133,6 +134,7 @@ class Template:
 template = Template()
 
 class BaseFig(go.Figure):
+    """Simple base figure class. Inherits from plotly.graph_objs.Figure."""
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -145,6 +147,7 @@ class BaseFig(go.Figure):
         super().show(renderer=renderer, config=config, *args, **kwargs)
 
 class Fig(BaseFig):
+    """Use this to instantiate figures."""
     
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
@@ -219,6 +222,8 @@ class Subplot:
     
     @num_rows.setter
     def num_rows(self, value=None):
+        """Defines row heights based on the number of rows. The number of rows is determined by what the figure
+        will show - water levels, precipitation, and flows. Up to three rows if all are shown."""
         if self.show_precip and self.show_flow:
             rows = 3
             self._row_heights = [0.7, 0.1, 0.2]
@@ -246,6 +251,8 @@ class Subplot:
     
     @num_cols.setter
     def num_cols(self, value=None):
+        """Defines column widths based the number of columns. If show_map is True, there will be two columns.
+        Otherwise there will be one column."""
         if self.show_map:
             cols = 2
             self._col_widths = [0.7, 0.3]

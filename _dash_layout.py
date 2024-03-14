@@ -1,5 +1,5 @@
 from dash import Dash, html, dcc
-from . import _ids as ids
+from figs import _ids as ids
 import dash_bootstrap_components as dbc
 import _dash_wl_viewer as wl
 from dash.dependencies import Input, Output, State

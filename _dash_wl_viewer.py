@@ -4,7 +4,7 @@ import plotly.graph_objects as go
 from plotly import graph_objs
 import plotly
 import plotly.express as px
-from . import _ids as ids
+from figs import _ids as ids
 from dash import Dash, dcc, html, callback_context
 import dash_bootstrap_components as dbc
 from dash.dependencies import Input, Output, State
@@ -15,10 +15,9 @@ import random
 from dash.exceptions import PreventUpdate
 import copy
 import os
-from ._fig import get_fig
+from figs._fig import Template
 import json
 from pathlib import Path
-from ._fig import Template
 
 canvas_height = 750
 #canvas_width = 1000
