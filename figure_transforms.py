@@ -39,7 +39,7 @@ class ScalableFigure(Fig):
         self._y_range = None
         self._svg_path = svg_path
         self._pdf_path = pdf_path
-        # default plot size is 11 x 17
+        # default plot size is 11 x 17 inches
         self._plot_width = 72 * 17  # 72 points per inch
         self._plot_height = 72 * 11
         self._x_scale = None
