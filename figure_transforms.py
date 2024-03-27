@@ -6,6 +6,9 @@ from reportlab.graphics.shapes import Drawing
 import plotly.io as pio
 import xml.etree.ElementTree as ETree
 import svgpathtools as svgtools
+from bokeh.plotting import figure, show
+from bokeh.models import Range1d
+from bokeh.io.export import get_svg, export_svg
 
 
 class ScalableFigure(Fig):
@@ -231,10 +234,142 @@ class ScalableFigure(Fig):
         renderPDF.drawToFile(rendered_drawing, pdf_path)
         print(f'wrote drawing {pdf_path}')
 
+class BokehScalableFigure:
+    def __init__(
+            self,
+            bokeh_figure: figure = None,
+            plot_width=17,
+            plot_height=11,
+            x_scale=1,
+            y_scale=1,
+            x_start=0,
+            y_start=0
+    ):
+        # Basic plot setup
+        self.dot_per_inch = 72  # used to convert plot dimensions to inches, 72 is the standard default
+        self.plot_width = plot_width * self.dot_per_inch
+        self.plot_height = plot_height * self.dot_per_inch
+        self.x_scale = x_scale  # real-world units per inch
+        self.y_scale = y_scale  # real-world units per inch
+        self.x_start = x_start  # minimum x value in real-world units
+        self.y_start = y_start  # minimum y value in real-world units
+        if bokeh_figure is None:
+            self.figure = figure(
+                width=self.plot_width, height=self.plot_height,
+                output_backend="svg")
+        else:
+            self.figure = bokeh_figure
+            self.figure.width = self.plot_width
+            self.figure.height = self.plot_height
+            self.figure.output_backend = 'svg'
+
+        # Default file paths
+        self.svg_path = 'temp_plot.svg'
+        self.pdf_path = 'temp_plot.pdf'
+
+    def add_line(self, x, y, **kwargs):
+        self.figure.line(x, y, **kwargs)
+
+    def write_svg(self):
+        # Save the current figure as svg
+        export_svg(self.figure, filename=self.svg_path)
+
+    @property
+    def x_scale(self):
+        return self._x_scale
+
+    @x_scale.setter
+    def x_scale(self, val):
+        self._x_scale = val
+
+    @property
+    def x_start(self):
+        return self._x_start
+
+    @x_start.setter
+    def x_start(self, val):
+        self._x_start = val
+
+    @property
+    def y_scale(self):
+        return self._y_scale
+
+    @y_scale.setter
+    def y_scale(self, val):
+        self._y_scale = val
+
+    @property
+    def y_start(self):
+        return self._y_start
+
+    @y_start.setter
+    def y_start(self, val):
+        self._y_start = val
+
+    @property
+    def root(self):
+        root = ETree.parse(self.svg_path).getroot()
+        self._root = root
+        return self._root
+
+    def get_scaled_grid_dimensions(self):
+        """Parses the figure SVG to get the scaled x and y ranges based on the starting.
+        Determines the actual axes spans in inches and scales the ranges so that the
+        specified x_scale and y_scale are true."""
+        root = self.root
+        elements = [element for element in root.iter()]
+        #  get the bounding box of the grid of the svg plot exported from Bokeh. the element with the
+        #  index of 5 encompases the grid area of the plot, so we get the bbox from this element
+        bbox = svgtools.parse_path(elements[5].attrib['d']).bbox()
+        x_dot_min, y_dot_min = bbox[0], bbox[2]
+        x_dot_span, y_dot_span = bbox[1] - bbox[0], bbox[3] - bbox[2]
+        x_length_grid_in_inches = x_dot_span / self.dot_per_inch
+        y_height_grid_in_inches = y_dot_span / self.dot_per_inch
+
+        x_unit_span = x_length_grid_in_inches * self.x_scale
+        y_unit_span = y_height_grid_in_inches * self.y_scale
+        x_unit_min, y_unit_min = self.x_start, self.y_start
+
+        x_unit_max = x_unit_min + x_unit_span
+        y_unit_max = y_unit_min + y_unit_span
+        x_range, y_range = (x_unit_min, x_unit_max), (y_unit_min, y_unit_max)
+
+        return x_range, y_range
+
+    def write_scaled_pdf(self):
+        svg_path = self.svg_path
+        pdf_path = self.pdf_path
+
+        #  write and parse inital svg, adust the figure ranges, and then write the scaled svg
+        self.write_svg()
+        print('wrote 1st svg')
+        x_range, y_range = self.get_scaled_grid_dimensions()
+        self.figure.x_range = Range1d(*x_range)
+        self.figure.y_range = Range1d(*y_range)
+        self.write_svg()
+        print('wrote scaled svg')
+
+        # Convert SVG to PDF while maintaining scale
+        drawing = svg2rlg(svg_path)
+
+        # Create a ReportLab drawing and render the SVG drawing into it
+        rendered_drawing = Drawing(drawing.width, drawing.height)
+        rendered_drawing.add(drawing)
+
+        # Write to a PDF
+        renderPDF.drawToFile(rendered_drawing, pdf_path)
+        print(f'PDF exported to {pdf_path}')
+
+
 if __name__ == "__main__":
+    bokeh_fig = BokehScalableFigure()
+    bokeh_fig.add_line(x=[1, 2, 3, 4], y=[4, 3, 5, 2], line_width=2, color="blue", legend_label='ground line')
+    bokeh_fig.write_scaled_pdf()  # Convert and scale to PDF
+
+"""if __name__ == "__main__":
 
     fig = ScalableFigure()
     fig.add_scatter(x=[-110, 20, 44], y=[3, 2, 1])
     fig.add_scatter(x=[-20, 30, 49], y=[6, 8, 10])
     fig.x_scale = 50
-    fig.write_scaled_pdf()
+    fig.write_scaled_pdf()"""
