@@ -313,7 +313,7 @@ class BokehScalableFigure:
         return self._root
 
     def get_scaled_grid_dimensions(self):
-        """Parses the figure SVG to get the scaled x and y ranges based on the starting.
+        """Parses the figure SVG to get the scaled x and y ranges.
         Determines the actual axes spans in inches and scales the ranges so that the
         specified x_scale and y_scale are true."""
         root = self.root
