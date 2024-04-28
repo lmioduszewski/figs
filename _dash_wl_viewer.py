@@ -15,9 +15,10 @@ import random
 from dash.exceptions import PreventUpdate
 import copy
 import os
-from figs._fig import Template
+from figs._fig import Template, Fig
 import json
 from pathlib import Path
+import plotly.io as pio
 
 canvas_height = 750
 #canvas_width = 1000
@@ -36,10 +37,13 @@ config = dict({'scrollZoom': True,
                'autosizable':True,
                'responsive': True,
                })
+#  Define the Water Level DataFrame to plot from
+wls_df = pd.read_excel(Path.home() / 'Python/data/Tehaleh_wls.xlsx', sheet_name='WellDD')
+wls_df = wls_df.set_index('Date Time')
 
 def render(app: Dash) -> dcc.Graph:
     
-    fig = go.Figure()
+    fig = Fig()
     
     @app.callback(
         Output(ids.WATER_LEVELS, 'figure'),
@@ -49,18 +53,16 @@ def render(app: Dash) -> dcc.Graph:
         prevent_initial_call=True)
     def update_wl_fig(upload_contents, clickData, fig_state):
         if callback_context.triggered_id == ids.OPEN_FIG:
+            """file to open must be a json representation of a Plotly fig"""
             # Split the content into metadata and data itself
             content_type, content_string = upload_contents.split(',')
             # Decode the base64 string
             decoded = base64.b64decode(content_string)
-            try:
-                fig_to_open = pickle.loads(decoded)
-            except Exception as e:
-                return f'An error occurred: {e}'
+            json_fig = json.loads(decoded)
+            fig_to_open = go.Figure(json_fig)
             return fig_to_open
         if callback_context.triggered_id == ids.WATER_LEVELS:
             curve_number = clickData['points'][0]['curveNumber']
-            
             return
 
     @app.callback(
@@ -78,7 +80,24 @@ def render(app: Dash) -> dcc.Graph:
             indent=1
         )
         return data
-       
+    @app.callback(
+        Output(ids.PLOT_WLS, 'value'),
+        Input(ids.PLOT_WLS, 'n_clicks'),
+        State(ids.WATER_LEVELS, 'selectedData'),
+        prevent_initial_call=True
+    )
+    def show_wls(_, selected_data):
+        selected_points = []
+        for point in selected_data['points']:
+            selected_points.append(point['text'])
+        columns = wls_df.columns
+        wl_fig = Fig()
+        for point_name in selected_points:
+            if point_name in columns:
+                well_data = wls_df.loc[:, point_name].dropna()
+                wl_fig.add_scattergl(x=well_data.index, y=well_data, name=point_name)
+        wl_fig.show()
+
     @app.callback(
         Output(ids.OFFCANVAS_MAIN2, 'is_open'),
         Input(ids.BUTTON_OPEN_MAIN_SIDEBAR2, 'n_clicks'),

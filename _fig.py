@@ -35,6 +35,7 @@ class Template:
                 'hoverclosest',
             ]
         )
+        self._margin = go.layout.Margin(autoexpand=True, b=0, t=0, l=0, r=0)
         self._xaxis_template = go.layout.XAxis(gridcolor='lightgray', griddash='dot')
         self._yaxis_template = go.layout.YAxis(gridcolor='lightgray', griddash='dot')
         self._font_template = go.layout.Font()
@@ -46,6 +47,7 @@ class Template:
             plot_bgcolor='white',
             xaxis=self._xaxis_template,
             yaxis=self._yaxis_template,
+            margin=self._margin
         )
         self._template = go.layout.Template(layout=self._template_layout)
         self.layout = go.Layout(template=self._template)
@@ -105,6 +107,12 @@ class Template:
     def create_hover(name_dict: dict = None):
         """
         Function to return a hover template for a Plotly figure
+
+        :args:
+        name_dict [dict]: dict where the keys are the names of each hover data label,
+        such as 'Proj #'. The values associated with each dict key are a list of data for that key,
+        such as a list of project numbers, one for each data point in the figure trace
+
         :return: customdata, hovertemplate
         """
         names = list(name_dict.keys())
@@ -139,7 +147,10 @@ class BaseFig(go.Figure):
     def __init__(self, *args, **kwargs):
         super().__init__(*args, **kwargs)
         self.layout = template.layout
-        self._config = {'scrollZoom': True}
+        self._config = {
+            'scrollZoom': True,
+            'displaylogo': False
+        }
         
     def show(self, renderer='browser', config=None, *args, **kwargs):
         if not config:
@@ -210,7 +221,7 @@ class Subplot:
             specs=self.specs,
             column_widths=self._col_widths,
             row_heights=self._row_heights,
-            *args, *kwargs
+            *args, **kwargs
         )
         self.apply_template_layout()
       

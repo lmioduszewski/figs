@@ -29,6 +29,7 @@ READ_EXCEL = 'Read Excel'
 STORE_EXCEL = 'Store Excel'
 STORE_FIG = 'Store fig'
 STORE_FIGTOSAVE = 'Store fig to save as json'
+PLOT_WLS = 'Plot Water Levels Button'
 
 PROGRESS_EXCEL = 'Excel read progress bar'
 PROGRESS_INTERVAL = 'Progress bar interval'
