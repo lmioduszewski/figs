@@ -19,6 +19,9 @@ from figs._fig import Template, Fig
 import json
 from pathlib import Path
 import plotly.io as pio
+from bokeh_fig import BokehFig
+from bokeh.plotting import figure, show
+from bokeh.models import ColumnDataSource
 
 canvas_height = 750
 #canvas_width = 1000
@@ -92,11 +95,15 @@ def render(app: Dash) -> dcc.Graph:
             selected_points.append(point['text'])
         columns = wls_df.columns
         wl_fig = Fig()
+        wl_fig_bokeh = BokehFig(x_axis_type="datetime")
+        wldd_source = wl_fig_bokeh.column_data_source(wls_df)
         for point_name in selected_points:
             if point_name in columns:
                 well_data = wls_df.loc[:, point_name].dropna()
                 wl_fig.add_scattergl(x=well_data.index, y=well_data, name=point_name)
+                wl_fig_bokeh.line(x='Date Time', legend_label=point_name, y=point_name, source=wldd_source)
         wl_fig.show()
+        wl_fig_bokeh.show()
 
     @app.callback(
         Output(ids.OFFCANVAS_MAIN2, 'is_open'),

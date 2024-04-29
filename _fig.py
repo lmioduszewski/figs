@@ -36,6 +36,7 @@ class Template:
             ]
         )
         self._margin = go.layout.Margin(autoexpand=True, b=0, t=0, l=0, r=0)
+        self._margin = None
         self._xaxis_template = go.layout.XAxis(gridcolor='lightgray', griddash='dot')
         self._yaxis_template = go.layout.YAxis(gridcolor='lightgray', griddash='dot')
         self._font_template = go.layout.Font()
