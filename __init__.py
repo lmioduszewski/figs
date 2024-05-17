@@ -1,4 +1,4 @@
-from ._fig import Template
+from ._fig import Template, Fig, Subplot
 
 def create_hover(*args, **kwargs):
     """

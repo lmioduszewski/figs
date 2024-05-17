@@ -100,10 +100,10 @@ def render(app: Dash) -> dcc.Graph:
         for point_name in selected_points:
             if point_name in columns:
                 well_data = wls_df.loc[:, point_name].dropna()
-                wl_fig.add_scattergl(x=well_data.index, y=well_data, name=point_name)
+                wl_fig.add_scattergl(x=well_data.index, y=well_data, name=point_name, connectgaps=False)
                 wl_fig_bokeh.line(x='Date Time', legend_label=point_name, y=point_name, source=wldd_source)
         wl_fig.show()
-        wl_fig_bokeh.show()
+        # wl_fig_bokeh.show()
 
     @app.callback(
         Output(ids.OFFCANVAS_MAIN2, 'is_open'),

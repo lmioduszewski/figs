@@ -186,6 +186,9 @@ class Fig(BaseFig):
         )
         
 class Subplot:
+    """
+    Class for making subplots for water level plots.
+    """
     
     def __init__(
         self, 
@@ -224,6 +227,7 @@ class Subplot:
             row_heights=self._row_heights,
             *args, **kwargs
         )
+        #  apply template layout from the Template class
         self.apply_template_layout()
       
     @property

@@ -30,3 +30,5 @@ if __name__ == "__main__":
             ).start()
             
     webview.start(func=(run_app))
+
+    Dash.run
