@@ -140,6 +140,14 @@ class Template:
 
         return custom_data, hover_template
 
+    @staticmethod
+    def add_to_hover_dict(existing_hover_dict: dict, dict_to_add: dict):
+        """add key,value pairs from a dict to another dict"""
+        new_hover_dict = existing_hover_dict
+        for hover_name, hover_data in dict_to_add.items():
+            new_hover_dict[hover_name] = hover_data
+        return new_hover_dict
+
 template = Template()
 
 class BaseFig(go.Figure):
@@ -290,11 +298,12 @@ class Subplot:
         specs = []
         if self.show_map:
             rowspan = self.num_rows
-            specs.append([{}, {'rowspan': rowspan, 'type': 'scattermapbox'}])
+            specs.append([{"secondary_y": True}, {'rowspan': rowspan, 'type': 'scattermapbox'}])
             for row in range(self._rows - 1):
                 specs.append([{}, None])
         else:
-            specs = None
+            for row in range(self.num_rows):
+                specs.append([{"secondary_y": True}])
         self._specs = specs
     
     def make(self, rows, cols, specs, column_widths, row_heights,
@@ -311,7 +320,7 @@ class Subplot:
             row_heights=row_heights,
             horizontal_spacing=horizontal_spacing,
             vertical_spacing=vertical_spacing,
-            shared_xaxes=shared_xaxes
+            shared_xaxes=shared_xaxes,
         )
         
     def add_trace(self, *args, **kwargs):
@@ -323,7 +332,14 @@ class Subplot:
     def apply_template_layout(self):
         self.fig.update_layout(**template._template_update_args)
      
-    def add_water_levels(self, df: pd.DataFrame=None, row=1, col=1, **kwargs):
+    def add_water_levels(
+            self,
+            df: pd.DataFrame=None,
+            row=1,
+            col=1,
+            secondary_y=None,
+            **kwargs
+    ):
         trace_names = df.columns[1:]
         trace_colors = template._get_colors_for_traces(trace_names)
         for idx, loc in enumerate(trace_names):
@@ -337,6 +353,7 @@ class Subplot:
                     marker_color = trace_colors[loc],
                     **kwargs
                 ),
+                secondary_y=secondary_y,
                 row=row,
                 col=col
             )
