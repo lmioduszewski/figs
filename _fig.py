@@ -37,8 +37,18 @@ class Template:
         )
         self._margin = go.layout.Margin(autoexpand=True, b=0, t=0, l=0, r=0)
         self._margin = None
-        self._xaxis_template = go.layout.XAxis(gridcolor='lightgray', griddash='dot')
-        self._yaxis_template = go.layout.YAxis(gridcolor='lightgray', griddash='dot')
+        self._xaxis_template = go.layout.XAxis(
+            gridcolor='lightgray',
+            griddash='dot',
+            spikethickness=1,
+            spikemode='toaxis+across'
+        )
+        self._yaxis_template = go.layout.YAxis(
+            gridcolor='lightgray',
+            griddash='dot',
+            spikethickness=1,
+            spikemode='toaxis+across'
+        )
         self._font_template = go.layout.Font()
 
         self._template_layout = go.Layout(
@@ -63,19 +73,27 @@ class Template:
                 'showticklabels': True,
                 'gridcolor': 'lightgray',
                 'griddash': 'dot',
+                'spikethickness': 1,
+                'spikemode': 'toaxis+across',
             },
             'xaxis2': {
                 'showticklabels': True,
                 'gridcolor': 'lightgray',
                 'griddash': 'dot',
+                'spikethickness': 1,
+                'spikemode': 'toaxis+across',
             },
             'yaxis': {
                 'gridcolor': 'lightgray',
-                'griddash': 'dot'
+                'griddash': 'dot',
+                'spikethickness': 1,
+                'spikemode': 'toaxis+across',
                 },
             'yaxis2': {
                 'gridcolor': 'lightgray',
-                'griddash': 'dot'
+                'griddash': 'dot',
+                'spikethickness': 1,
+                'spikemode': 'toaxis+across',
                 },
             'legend': {
                 'x': -0.26,
@@ -173,7 +191,11 @@ class Fig(BaseFig):
         super().__init__(*args, **kwargs)
         self._subplot = None
         self.update_layout(template.layout)
-        
+        self._template = Template()
+
+
+
+
     def subplot(self, *args, **kwargs):
         self._subplot = Subplot(*args, **kwargs)
         return self._subplot
@@ -191,6 +213,33 @@ class Fig(BaseFig):
             list(self.data),
             rows=[row for i in num_traces],
             cols=[col for i in num_traces]
+        )
+
+    def add_water_levels(
+            self,
+            df: pd.DataFrame=None,
+            secondary_y=None,
+            **kwargs
+    ):
+        trace_names = df.columns[1:]
+        trace_colors = self._template._get_colors_for_traces(trace_names)
+        for idx, loc in enumerate(trace_names):
+            self.add_trace(
+                go.Scattergl(
+                    x=list(df.iloc[:, 0]),
+                    y=list(df.iloc[:, idx+1]),
+                    name=loc,
+                    line_width = 1.5,
+                    line_color = trace_colors[loc],
+                    marker_color = trace_colors[loc],
+                    **kwargs
+                ),
+                secondary_y=secondary_y,
+            )
+        self.update_yaxes(
+            title_text="Elevation (ft)",
+            showticklabels=True,
+            automargin=True,
         )
         
 class Subplot:
