@@ -9,6 +9,7 @@ import svgpathtools as svgtools
 from bokeh.plotting import figure, show
 from bokeh.models import Range1d
 from bokeh.io.export import get_svg, export_svg
+import cairosvg
 
 
 class ScalableFigure(Fig):
@@ -20,37 +21,57 @@ class ScalableFigure(Fig):
 
         fig = ScalableFigure()
         fig.add_scatter(x=..., y=...)
+        fig.y_scale_exaggeration = 10
         fig.x_scale = 200
         fig.write_scaled_pdf()
 
         By default, the x-axis is the anchor axis, while the scale of the y-axis is determined by the exaggeration,
-        which defaults to 10 times. So in the example, the y-scale would be 1 inch = 20 feet, and the x-scale would
-        be 1 inch = 200 feet. Also, by default the page size (plot_height and plot_width properties) is 11 x 17 inches,
-        and the scaling changes the range of the axes so that the axes' scales match the defined properties for
-        x_scale and y_scale. Can also scale the page, instead of changing axes' ranges by setting adjust_by = "page" in
-        the write_scaled_pdf method.
-
+        which defaults to 1. In the example the exaggeration is set to 10, the y-scale would be 1 inch = 20 feet, and
+        the x-scale would be 1 inch = 200 feet. Also, by default the page size (plot_height and plot_width properties)
+        is 11 x 17 inches, and the scaling changes the range of the axes so that the axes' scales match the defined
+        properties for x_scale and y_scale. Can also scale the page, instead of changing axes' ranges by setting
+        adjust_by = "page" in the write_scaled_pdf method.
         """
 
     def __init__(
             self,
             svg_path='temp_plot.svg',
-            pdf_path='temp_plot.pdf'
+            pdf_path='temp_plot.pdf',
+            y_scale_exaggeration=1,
+            plot_width_in_base_units=17,
+            plot_height_in_base_units=11,
+            dots_per_base_unit = None,
+            *args,
+            **kwargs
     ):
-        super().__init__()
+        super().__init__(*args, **kwargs)
         self._x_range = None
         self._y_range = None
         self._svg_path = svg_path
         self._pdf_path = pdf_path
+        self._plot_width_in_base_units = plot_width_in_base_units
+        self._plot_height_in_base_units = plot_height_in_base_units
+        self._dots_per_inch = 72
+        # default base unit is one inch, which is 72 dots
+        self._dots_per_base_unit = self._dots_per_inch if dots_per_base_unit is None else dots_per_base_unit
         # default plot size is 11 x 17 inches
-        self._plot_width = 72 * 17  # 72 points per inch
-        self._plot_height = 72 * 11
+        self._plot_width = self._dots_per_base_unit * plot_width_in_base_units  # 72 points per inch
+        self._plot_height = self._dots_per_base_unit * plot_height_in_base_units
         self._x_scale = None
         self._y_scale = None
-        self._y_scale_exaggeration = 10
+        self._y_scale_exaggeration = None
+        self.y_scale_exaggeration = y_scale_exaggeration
         self._xaxis_anchor = True
         self._tree = None
         self._grid_dimensions = None
+
+    @property
+    def y_scale_exaggeration(self):
+        return self._y_scale_exaggeration
+
+    @y_scale_exaggeration.setter
+    def y_scale_exaggeration(self, val):
+        self._y_scale_exaggeration = val
 
     @property
     def x_range(self):
@@ -139,29 +160,29 @@ class ScalableFigure(Fig):
 
     @property
     def plot_width(self):
-        """sets the page width of the plot in inches"""
+        """sets the page width of the plot in base units (default is inches)"""
         return self._plot_width
 
     @plot_width.setter
     def plot_width(self, val):
-        if type(val) is int:
-            #  assumes the conversion 72 dots per inch in the output SVG/PDF
-            self._plot_width = val * 72
+        if isinstance(val, int | float):
+            #  default assumes the conversion 72 dots per inch (the base unit) in the output SVG/PDF
+            self._plot_width = val * self._dots_per_base_unit
         else:
-            print(f'provided value: {val} is not an integer. Property cannot be set')
+            print(f'provided value: {val} is not an integer or float. Property cannot be set')
 
     @property
     def plot_height(self):
-        """sets the page height of the plot in inches"""
+        """sets the page height of the plot in base units (default is inches)"""
         return self._plot_height
 
     @plot_height.setter
     def plot_height(self, val):
-        if type(val) is int:
+        if isinstance(val, int | float):
             #  assumes the conversion 72 dots per inch in the output SVG/PDF
-            self._plot_height = val * 72
+            self._plot_height = val * self._dots_per_base_unit
         else:
-            print(f'provided value: {val} is not an integer. Property cannot be set')
+            print(f'provided value: {val} is not an integer or float. Property cannot be set')
 
     def _get_plot_to_grid_scale_ratios(self):
         """get the ratios of the plot width and height to the grid width and height"""
@@ -174,6 +195,7 @@ class ScalableFigure(Fig):
         """writes an SVG representation of the figure to a *.svg file"""
         if filename is None:
             filename = self._svg_path
+        print('writing SVG to', filename)
         pio.write_image(
             self,
             format='svg',
@@ -185,15 +207,24 @@ class ScalableFigure(Fig):
             self,
             delete_svg=True,
             adjust_by='range',
+            pdf_renderer='rlg'
     ):
-        if adjust_by == 'page':
-            drawing = self._scale_page()
+        if pdf_renderer == 'rlg':
+            if adjust_by == 'page':
+                drawing = self._scale_page()
+            elif adjust_by == 'range':
+                drawing = self._scale_range()
+            else:
+                print("adjust_by must equal 'page' or 'range'")
             self._write_pdf(drawing)
-        elif adjust_by == 'range':
-            drawing = self._scale_range()
-            self._write_pdf(drawing)
-        else:
-            print("adjust_by must equal 'page' or 'range'")
+
+        if pdf_renderer == 'cairo':
+            if adjust_by == 'page':
+                raise NotImplemented
+            if adjust_by == 'range':
+                self._scale_range(pdf_renderer='cairo')
+                cairosvg.svg2pdf(url=self._svg_path, write_to=self._pdf_path)
+
         if delete_svg and os.path.exists(self._svg_path):
             os.remove(self._svg_path)
 
@@ -206,23 +237,33 @@ class ScalableFigure(Fig):
         drawing.scale(scale_x, scale_y)
         return drawing
 
-    def _scale_range(self):
+    def _scale_range(self, pdf_renderer='rlg'):
         """Scale the range of the figure, keeping the page size the same, so that
         the x and y ranges are at the provided scale"""
-        x_feet_per_dot = [self._x_scale / 72 if self._x_scale is not None else 0]
-        y_feet_per_dot = [self._y_scale / 72 if self._y_scale is not None else 0]
+        x_units_per_dot = [self.x_scale / self._dots_per_base_unit if self.x_scale is not None else 0]
+        y_units_per_dot = [self.y_scale / self._dots_per_base_unit if self.y_scale is not None else 0]
         grid_dimensions = self.grid_dimensions
         #  get default minimum x-axis value based on data
         x_min = self.full_figure_for_development(warn=False).layout.xaxis.range[0]
+        y_min = self.full_figure_for_development(warn=False).layout.yaxis.range[0]
         x_dots, y_dots = grid_dimensions['width'], grid_dimensions['height']
-        x_span, y_span = x_dots * x_feet_per_dot[0], y_dots * y_feet_per_dot[0]
+        x_span, y_span = x_dots * x_units_per_dot[0], y_dots * y_units_per_dot[0]
         if self._xaxis_anchor is True:
-            self.update_yaxes(scaleanchor='x', scaleratio=self._y_scale_exaggeration)
+            self.update_yaxes(scaleanchor='x', scaleratio=self.y_scale_exaggeration)
+        else:
+            self.update_yaxes(range=[y_min, y_min + y_span])
         self.update_xaxes(range=[x_min, (x_min + x_span)])
+
         #   write a new svg file with the updated, scaled axes ranges
         self.write_svg()
-        drawing = svg2rlg(self._svg_path)
-        return drawing
+
+        if pdf_renderer == 'rlg':
+            print('using rlg')
+            drawing = svg2rlg(self._svg_path)
+            return drawing
+
+        if pdf_renderer == 'cairo':
+            print('using cairo')
 
     def _write_pdf(self, drawing: svg2rlg, pdf_path=None):
         """write a pdf from a svg2rlg drawing"""
@@ -246,7 +287,7 @@ class BokehScalableFigure:
             y_start=0
     ):
         # Basic plot setup
-        self.dot_per_inch = 72  # used to convert plot dimensions to inches, 72 is the standard default
+        self.dot_per_inch = self.dot_per_base_unit  # used to convert plot dimensions to inches, 72 is the standard default
         self.plot_width = plot_width * self.dot_per_inch
         self.plot_height = plot_height * self.dot_per_inch
         self.x_scale = x_scale  # real-world units per inch
@@ -361,15 +402,15 @@ class BokehScalableFigure:
         print(f'PDF exported to {pdf_path}')
 
 
-if __name__ == "__main__":
+"""if __name__ == "__main__":
     bokeh_fig = BokehScalableFigure()
     bokeh_fig.add_line(x=[1, 2, 3, 4], y=[4, 3, 5, 2], line_width=2, color="blue", legend_label='ground line')
-    bokeh_fig.write_scaled_pdf()  # Convert and scale to PDF
+    bokeh_fig.write_scaled_pdf()  # Convert and scale to PDF"""
 
-"""if __name__ == "__main__":
+if __name__ == "__main__":
 
     fig = ScalableFigure()
     fig.add_scatter(x=[-110, 20, 44], y=[3, 2, 1])
     fig.add_scatter(x=[-20, 30, 49], y=[6, 8, 10])
     fig.x_scale = 50
-    fig.write_scaled_pdf()"""
+    fig.write_scaled_pdf()

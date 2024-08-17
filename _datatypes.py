@@ -79,6 +79,12 @@ class ExcelData(BaseData):
         key = list(self.excel_dict.keys())[idx]
         return self.excel_dict[key]['DataFrame']
 
+    @property
+    def dfs(self):
+        """Method to get a list of all DataFrames in excel_dict"""
+        return [self.get_idx(idx) for idx in range(len(self.excel_dict))]
+
+
 class ExcelDateData(ExcelData):
     def __init__(
             self,

@@ -6,6 +6,7 @@ from plotly.subplots import make_subplots
 import geopandas as gpd
 import plotly
 import pickle
+import figs as f
 
 
 data_dir = Path.cwd().joinpath('sample_data')
@@ -80,8 +81,6 @@ class Template:
                 'showticklabels': True,
                 'gridcolor': 'lightgray',
                 'griddash': 'dot',
-                'spikethickness': 1,
-                'spikemode': 'toaxis+across',
             },
             'yaxis': {
                 'gridcolor': 'lightgray',
@@ -92,8 +91,6 @@ class Template:
             'yaxis2': {
                 'gridcolor': 'lightgray',
                 'griddash': 'dot',
-                'spikethickness': 1,
-                'spikemode': 'toaxis+across',
                 },
             'legend': {
                 'x': -0.26,
@@ -192,9 +189,6 @@ class Fig(BaseFig):
         self._subplot = None
         self.update_layout(template.layout)
         self._template = Template()
-
-
-
 
     def subplot(self, *args, **kwargs):
         self._subplot = Subplot(*args, **kwargs)
@@ -383,15 +377,44 @@ class Subplot:
      
     def add_water_levels(
             self,
-            df: pd.DataFrame=None,
-            row=1,
-            col=1,
-            secondary_y=None,
+            excel_paths: Path | list = None,
+            df: pd.DataFrame = None,
+            row = 1,
+            col = 1,
+            secondary_y = None,
             **kwargs
     ):
-        trace_names = df.columns[1:]
+        """
+        Add water level data to the main water level subplot. Can provide excel paths or a single DataFrame. The excel
+        paths take presidence over the df if provided.
+        """
+        if excel_paths is not None:
+            data = f.ExcelDateData(excel_paths=excel_paths).dfs
+        elif df is not None:
+            df.set_index(df.columns[0], inplace=True)
+            assert pd.api.types.is_datetime64_any_dtype(df.index), 'first column of df must be datetime64'
+            data = [df]
+        else:
+            raise ValueError('No excel_paths or df data provided')
+        trace_names = []
+        for df in data:
+            names = df.columns.values.tolist()
+            trace_names += names
         trace_colors = template._get_colors_for_traces(trace_names)
-        for idx, loc in enumerate(trace_names):
+        for df in data:
+            for col in df.columns:
+                self.add_trace(
+                    go.Scattergl(
+                        x=df.index,
+                        y=df[col],
+                        name=col,
+                        line_width=self.trace_specs['water_levels_width'],
+                        line_color=trace_colors[col],
+                        marker_color=trace_colors[col],
+                        **kwargs
+                    )
+                )
+        """for idx, loc in enumerate(trace_names):
             self.add_trace(
                 go.Scattergl(
                     x=list(df.iloc[:, 0]),
@@ -405,7 +428,7 @@ class Subplot:
                 secondary_y=secondary_y,
                 row=row,
                 col=col
-            )
+            )"""
         self.fig.update_yaxes(
             title_text="Elevation (ft)",
             showticklabels=True,
